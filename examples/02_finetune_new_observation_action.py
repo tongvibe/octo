@@ -56,7 +56,7 @@ def main(_):
 
     # setup wandb for logging
     # wandb.init(name="finetune_aloha", project="octo")
-    wandb.init(name="finetune_duck", project="octo")
+    wandb.init(name="finetune_duck", project="octo_our_dataset")
     # load pre-trained model
     logging.info("Loading pre-trained model...")
     pretrained_model = OctoModel.load_pretrained(FLAGS.pretrained_path)
@@ -68,7 +68,7 @@ def main(_):
     logging.info("Loading finetuning dataset...")
     dataset = make_single_dataset(
         dataset_kwargs=dict(
-            name="duck_killer",
+            name="move_to_duck",
             data_dir=FLAGS.data_dir,
             image_obs_keys={"primary": "image"},
             proprio_obs_key="state",
@@ -184,7 +184,7 @@ def main(_):
 
     # run finetuning loop
     logging.info("Starting finetuning...")
-    for i in tqdm.tqdm(range(50000), total=50000, dynamic_ncols=True):
+    for i in tqdm.tqdm(range(5000), total=5000, dynamic_ncols=True):
         batch = next(train_data_iter)
         train_state, update_info = train_step(train_state, batch)
         if (i + 1) % 100 == 0:
@@ -193,7 +193,7 @@ def main(_):
                 flax.traverse_util.flatten_dict({"training": update_info}, sep="/"),
                 step=i,
             )
-        if (i + 1) % 50000 == 0:
+        if (i + 1) % 5000 == 0:
             # save checkpoint
             train_state.model.save_pretrained(step=i, checkpoint_path=FLAGS.save_dir)
 
