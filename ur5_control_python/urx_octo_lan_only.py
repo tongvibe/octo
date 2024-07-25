@@ -20,42 +20,17 @@ os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
 model = OctoModel.load_pretrained("/home/tong/model_space/modelbase_move_to_duck_small/")
 print('Successfully load the model!')
-
-def pad_to_square_opencv(image):
-    # 获取图像的宽度和高度
-    height, width, _ = image.shape
-    
-    # 计算填充后的正方形边长
-    max_side = max(width, height)
-    
-    # 创建一个新的正方形图像，背景为白色
-    new_image = 255 * np.ones((max_side, max_side, 3), dtype=np.uint8)
-    
-    # 计算图像在新正方形图像中的位置
-    left = (max_side - width) // 2
-    top = (max_side - height) // 2
-    
-    # 将原图像粘贴到新图像上
-    new_image[top:top+height, left:left+width] = image
-    
-    return new_image
-
 #set window and camera
 WINDOW_SIZE = 1
 cap = cv2.VideoCapture(2)
-cap.set(cv2.CAP_PROP_BUFFERSIZE, WINDOW_SIZE) 
-#my camera port '2'
-# width = 1280  # 设置宽度为 640 像素
-# height = 720  # 设置高度为 480 像素
-# cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-# cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+# cap.set(cv2.CAP_PROP_BUFFERSIZE, WINDOW_SIZE) 
 
 if not cap.isOpened():
     print("Cannot open camera")
     exit()
 
 images = []
-language_instruction="move to the blue duck"
+language_instruction="move to the blue rubber duck"
 task = model.create_tasks(texts=[language_instruction])                  # for language conditioned
 
 # 进行推理循环
@@ -65,12 +40,8 @@ rob.movej((-0.1554021+3.1415926/2,-1.6309904,2.4249759,-2.406821,-1.5576328,2.79
 print('Start to input 2 images')
 while True:
         ret, frame = cap.read()
-        # print("frame shape",frame.shape)
-        # cv2.imshow('frame', frame)
-        
-        # if cv2.waitKey(1) == 32:
+    
        
-            
         if not ret:
             print("Can't receive frame (stream end?). Exiting ...")
             break
@@ -129,16 +100,7 @@ while True:
                 # print(i)
             else:
                 print("############################################################################################################################")
-            # with open('q_targets.txt', 'w') as f:
-            #     for arr in q_total:
-            #         line = ', '.join(map(str, arr))
-            #         f.write(f'{line}\n')
-            # 显示摄像头画面
-            # cv2.imshow('frame', resized_frame)
-            # time.sleep(0.5)
         
-        
-# 释放摄像头并关闭所有窗口
 cap.release()
 cv2.destroyAllWindows()
 rob.close()
