@@ -1,5 +1,7 @@
 """
 This script shows how to evaluate a finetuned model on a real UR5 robot.
+How to use it:
+python examples/04_eval_finetuned_on_ur5.py --checkpoint_weights_path=/home/tong/model_space/7.24/model_8_octo1.5_win2_h4_10k/ --checkpoint_step=9999 --im_size=256
 """
 
 from datetime import datetime
@@ -21,7 +23,7 @@ from octo.utils.gym_wrappers import HistoryWrapper, TemporalEnsembleWrapper
 from octo.utils.train_callbacks import supply_rng
 
 np.set_printoptions(suppress=True)
-logging.set_verbosity(logging.WARNING)
+logging.set_verbosity(logging.ERROR)
 
 FLAGS = flags.FLAGS
 
@@ -37,7 +39,7 @@ flags.DEFINE_spaceseplist("initial_pose", [0.5, 0.0, 0.3], "Initial position and
 flags.DEFINE_bool("blocking", False, "Use the blocking controller")
 flags.DEFINE_integer("im_size", None, "Image size", required=True)
 flags.DEFINE_string("video_save_path", None, "Path to save video")
-flags.DEFINE_integer("num_timesteps", 120, "Number of timesteps")
+flags.DEFINE_integer("num_timesteps", 50, "Number of timesteps")
 flags.DEFINE_integer("window_size", 2, "Observation history length")
 flags.DEFINE_integer("action_horizon", 4, "Length of action sequence to execute/ensemble")
 flags.DEFINE_bool("show_image", False, "Show image")
@@ -54,6 +56,7 @@ def null_obs(img_size):
 
 def convert_obs(pose, image, im_size):
     image_obs = (image.reshape(im_size, im_size, 3)).astype(np.uint8)
+    # cv2.imshow('imagw',image_obs)
     proprio = pose
     return {
         "image_primary": image_obs,
@@ -61,8 +64,10 @@ def convert_obs(pose, image, im_size):
     }
 
 class UR5Env(gym.Env):
-    def __init__(self, ip, im_size: int=256, acc=0.5, vel=0.5):
+    def __init__(self, ip, camera_ID=0, im_size: int=256, acc=0.5, vel=0.5):
         self.rob = urx.Robot(ip)
+        self.cap = cv2.VideoCapture(camera_ID) 
+        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         self.rob.set_tcp((0, 0, 0, 0, 0, 0))
         self.rob.set_payload(0.1, (0, 0, 0.1))
         self.acc = acc
@@ -114,14 +119,22 @@ class UR5Env(gym.Env):
     def get_image(self):
         # Implement image capture logic, e.g., from a camera
         # Return a dummy image for now
-        return np.zeros((self.im_size, self.im_size, 3), dtype=np.uint8)
+        ret, frame = self.cap.read()  # 从摄像头获取一帧图像
+        if ret:  # 如果成功获取到图像
+            frame = cv2.resize(frame, (self.im_size, self.im_size))  # 调整图像尺寸为 im_size x im_size
+            # cv2.imshow('imagw',frame)
+            return frame
+        else:  # 如果未能成功获取图像
+            return None  # 或者采取其他处理措施
+        # return np.zeros((self.im_size, self.im_size, 3), dtype=np.uint8)
 
     def close(self):
+        self.cap.release()
         self.rob.close()
 
 
 def main(_):
-    env = UR5Env(FLAGS.ip, FLAGS.im_size,FLAGS.acc, FLAGS.vel)
+    env = UR5Env(ip = FLAGS.ip, camera_ID=2, acc = FLAGS.acc, vel = FLAGS.vel)
     env = HistoryWrapper(env, FLAGS.window_size)
     env = TemporalEnsembleWrapper(env, FLAGS.action_horizon)
     
@@ -146,6 +159,8 @@ def main(_):
             model,
             # argmax=FLAGS.deterministic,
             # temperature=FLAGS.temperature,
+            # argmax=False,
+            # temperature=1.0,
         )
     )
 
@@ -172,7 +187,7 @@ def main(_):
         elif modality == "l":
             print("Current instruction:", goal_instruction)
             if click.confirm("Take a new instruction?", default=True):
-                text = input("Instruction?")
+                text = input("Instruction?Please:")
             task = model.create_tasks(texts=[text])
             goal_instruction = text
             goal_image = jnp.zeros_like(goal_image)
@@ -183,7 +198,6 @@ def main(_):
         
         obs, _ = env.reset()
         time.sleep(2.0)
-
         last_tstep = time.time()
         images = []
         goals = []
@@ -191,13 +205,13 @@ def main(_):
         while t < FLAGS.num_timesteps:
             if time.time() > last_tstep + STEP_DURATION:
                 last_tstep = time.time()
-                
-                images.append(obs["image_primary"])
+                # print(obs["image_primary"].shape)
+                images.append(obs["image_primary"][-1])
                 goals.append(goal_image)
 
                 if FLAGS.show_image:
-                    bgr_img = cv2.cvtColor(obs["image_primary"], cv2.COLOR_RGB2BGR)
-                    cv2.imshow("img_view", bgr_img)
+                    bgr_img = cv2.cvtColor(obs["image_primary"][-1], cv2.COLOR_RGB2BGR)
+                    cv2.imshow("img_view", obs["image_primary"][-1])
                     cv2.waitKey(20)
 
                 forward_pass_time = time.time()
@@ -221,7 +235,6 @@ def main(_):
             video = np.concatenate([np.stack(goals), np.stack(images)], axis=1)
             imageio.mimsave(save_path, video, fps=1.0 / STEP_DURATION * 3)
 
-    env.close()
 
 if __name__ == "__main__":
     app.run(main)
