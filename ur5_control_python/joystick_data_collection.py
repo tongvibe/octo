@@ -90,6 +90,7 @@ def handle_joystick():
                 axis_rz = 0  # RZ轴
 
                 update_move_vector(-axis_x, axis_y, -axis_z, axis_rx, axis_ry, axis_rz)
+            ##!!!!!!!!这里可以优化一下，xyz一起动，这里分开更新vector了，一起DONG
             elif event.type == pygame.JOYHATMOTION:
                 axis_z = joystick.get_hat(0)
                 if axis_z == (0, 1):
@@ -116,6 +117,47 @@ def handle_joystick():
                 update_move_vector(move_vector[0], move_vector[1], move_vector[2], move_vector[3], move_vector[4], axis_rz)
             
         # time.sleep(0.1)  # 调整以满足需要的刷新速率
+
+def handle_joystick():
+    while not stop_event.is_set():
+        for event in pygame.event.get():
+            if event.type == pygame.JOYAXISMOTION:
+                axis_x = joystick.get_axis(0)  # X轴
+                axis_y = joystick.get_axis(1)  # Y轴
+                # axis_z = 0  # 0-a, 1-b, 3-x, 4-y 10-select, 11-start
+
+                axis_rx = -joystick.get_axis(3)  # RX轴（假设手柄有 RX 轴）
+                axis_ry = joystick.get_axis(2)  # RY轴（假设手柄有 RY 轴）
+                axis_rz = 0  # RZ轴
+
+                # update_move_vector(-axis_x, axis_y, -axis_z, axis_rx, axis_ry, axis_rz)
+            ##!!!!!!!!这里可以优化一下，xyz一起动，这里分开更新vector了，一起DONG
+                if event.type == pygame.JOYHATMOTION:
+                    axis_z = joystick.get_hat(0)
+                    if axis_z == (0, 1):
+                        z = 1
+                    elif axis_z == (0, -1):
+                        z = -1
+                    else:
+                        z = 0
+                    # update_move_vector(move_vector[0], move_vector[1], z, move_vector[3], move_vector[4], move_vector[5])
+                elif event.type == pygame.JOYBUTTONDOWN or event.type == pygame.JOYBUTTONUP:
+                    if joystick.get_button(0):
+                        axis_rz = 1
+                    elif joystick.get_button(4):
+                        axis_rz = -1
+                    elif joystick.get_button(1):
+                        axis_rz = 0
+                        save_data()
+                        stop_event.set()
+                        rob.close()
+                        cap.release()
+                        exit()
+                    else:
+                        axis_rz = 0
+
+                    
+                update_move_vector(-axis_x, axis_y, z, axis_rx, axis_ry, axis_rz)
 
 def convert_to_euler_angles(rotation_vector):
     """将旋转向量(Rx, Ry, Rz)转换为欧拉角(roll, pitch, yaw)"""

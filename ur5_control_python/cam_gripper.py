@@ -3,26 +3,71 @@ import time
 from urx.robotiq_two_finger_gripper import Robotiq_Two_Finger_Gripper
 from urx.urscript import URScript
 from scipy.spatial.transform import Rotation as R  # 导入scipy库中的Rotation类
-
+import numpy as np
+import math
 # Initialize the robot by IP
 rob = urx.Robot("192.168.51.254")
 
 # Set the tool center point (TCP) and payload
 # set the offset and load for robot
 
-rob.set_tcp((0, 0, 0.9, 0, 0, 0))
-rob.set_payload(1, (0, 0, 0.9))
+rob.set_tcp((0, 0, 0.25, 0, 0, 0))
+# rob.set_payload(1, (0, 0, 0.9))
 
 # Allow some time for the robot to process the setup commands
 time.sleep(0.2)
 
 # Define motion parameters (acceleration and velocity)
 a = 0.05  # example acceleration
-v = 0.005   # example velocity
+v = 0.05   # example velocity
 
 # Define position/orientation parameters
 # x, y, z = 0.05, 0.05, 0.05  # example positions
 # rx, ry, rz = 0, 0, 0  # example orientations
+
+
+#计算
+cam_T_bottle = np.array(
+    [[ 0.0568925,   0.9917081,  -0.11523127, 0.01423314 ],
+    [-0.43903548,  0.1285107,   0.88923162, 0.03185938],
+    [ 0.89666671,  0.        ,  0.44270632, 0.70300001],
+    [0, 0, 0, 1]]
+    )
+
+Y = np.array(
+    [[-9.99978664e-01, -6.09311932e-04 ,-6.50387202e-03, -3.57293585e-01],
+    [ 2.65102085e-03,  8.72110881e-01 ,-4.89301118e-01 , 5.29347377e-02],
+    [ 5.97023457e-03 ,-4.89307920e-01, -8.72090658e-01 , 6.74492540e-01],
+    [ 0.00000000e+00 , 0.00000000e+00,  0.00000000e+00  ,1.00000000e+00]]
+                )
+base_T_tag = np.dot(Y, cam_T_bottle)
+print("base_T_tag",base_T_tag)
+
+
+def homogeneous_to_rot_trans(T):
+    # 提取平移向量
+    tx, ty, tz = T[0, 3], T[1, 3], T[2, 3]
+    # 提取旋转矩阵
+    R = T[0:3, 0:3]
+    # 计算旋转角度 θ
+    trace_R = np.trace(R)
+    theta = math.acos((trace_R - 1) / 2)
+    if theta < 1e-6:
+        # 如果旋转角度接近0，旋转向量为零向量S
+        return np.array([0, 0, 0]), np.array([tx, ty, tz])
+    # 计算旋转向量
+    rx = (R[2, 1] - R[1, 2]) / (2 * math.sin(theta))
+    ry = (R[0, 2] - R[2, 0]) / (2 * math.sin(theta))
+    rz = (R[1, 0] - R[0, 1]) / (2 * math.sin(theta))
+    rot_vector = theta * np.array([rx, ry, rz])
+    # print(tx,ty,tz,rot_vector)
+    return np.append(np.array([tx, ty, tz]),rot_vector)
+
+ans = homogeneous_to_rot_trans(base_T_tag)
+print(ans)
+
+
+
 
 try:
     # Move to a joint space position
@@ -43,7 +88,7 @@ try:
     print("欧拉角:", euler_angles)
 
     # Move relative to the current pose
-    rob.movel((-0.33, -0.293, 0.17, 0, 0, 0), acc=a, vel=v, relative=False)
+    rob.movel(ans, acc=a, vel=v, relative=False)
     # txt_file = '/home/tong/robotic-ai/octo/examples/action_groundturth.txt'
     # with open(txt_file, 'r') as f:
     #     # 逐行读取数据
