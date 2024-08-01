@@ -10,7 +10,7 @@ rob = urx.Robot("192.168.51.254")
 # Set the tool center point (TCP) and payload
 # set the offset and load for robot
 
-rob.set_tcp((0, 0, 0.9, 0, 0, 0))
+rob.set_tcp((0, 0, 0, 0, 0, 0))
 rob.set_payload(1, (0, 0, 0.9))
 
 # Allow some time for the robot to process the setup commands
@@ -18,7 +18,7 @@ time.sleep(0.2)
 
 # Define motion parameters (acceleration and velocity)
 a = 0.05  # example acceleration
-v = 0.005   # example velocity
+v = 0.05   # example velocity
 
 # Define position/orientation parameters
 # x, y, z = 0.05, 0.05, 0.05  # example positions
@@ -43,7 +43,7 @@ try:
     print("欧拉角:", euler_angles)
 
     # Move relative to the current pose
-    rob.movel((-0.33, -0.293, 0.17, 0, 0, 0), acc=a, vel=v, relative=False)
+    rob.movel((-0.58479328, -0.46829172 , 0.163,  -0.41, -0.372,  0.139), acc=a, vel=v, relative=False)
     # txt_file = '/home/tong/robotic-ai/octo/examples/action_groundturth.txt'
     # with open(txt_file, 'r') as f:
     #     # 逐行读取数据
