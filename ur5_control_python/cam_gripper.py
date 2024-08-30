@@ -109,7 +109,7 @@ try:
     #         time.sleep(0.02)
             # print("Current pose xyz is:", rob.get_pose().pos)   
     # Translate the tool while keeping orientation
-    # rob.translate((0.1, 0, 0), acc=a, vel=v)
+    # pyorbbecsdk/vibe_xgripper_v1.pyrob.translate((0.1, 0, 0), acc=a, vel=v)
 
     # Stop the robot with joint deceleration
     # rob.stopj(acc=a)
