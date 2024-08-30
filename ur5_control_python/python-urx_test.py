@@ -21,32 +21,6 @@ time.sleep(0.2)
 a = 0.05  # example acceleration
 v = 0.05   # example velocity
 #计算
-
-def modify_rotation_in_transformation_matrix(T, R):
-    """
-    修改齐次变换矩阵中的旋转矩阵。
-
-    :param T: 原始齐次变换矩阵 (4x4)
-    :param R: 要乘以的旋转矩阵 (3x3)
-    :return: 修改后的齐次变换矩阵 (4x4)
-    """
-
-    # 先确保输入的矩阵维度正确
-    assert T.shape == (4, 4), "T must be a 4x4 matrix"
-    assert R.shape == (3, 3), "R must be a 3x3 matrix"
-
-    # 提取原有的旋转部分（前3x3）
-    original_rotation = T[:3, :3]
-
-    # 计算新的旋转矩阵
-    new_rotation = np.dot(R, original_rotation)
-
-    # 将新的旋转矩阵放回齐次变换矩阵中
-    T[:3, :3] = new_rotation
-
-    return T
-
-
 cam_T_bottle = np.array(
     [[0.056892, -0.987741, -0.145368, 0.037548],
     [-0.439035, 0.106018, -0.892193, -0.171583],
@@ -54,38 +28,43 @@ cam_T_bottle = np.array(
     [0.000000, 0.000000, 0.000000, 1.000000]]
     )
 
+C= np.array(
+    [[0.056892, -0.987741, -0.145368],
+    [-0.439035, 0.106018, -0.892193],
+    [0.896667, 0.114581, -0.427621]]
+    )
 
 
+Tz = np.array(
+    [[-1,0,0,0],
+     [0,-1,0,0],
+     [0,0,1,0],
+     [0,0,0,1]]
+)
+Ty = np.array(
+    [[0,0,-1],
+     [0,1,0],
+     [1,0,0]]
+)
 
-# Tz = np.array(
-#     [[-1,0,0,0],
-#      [0,-1,0,0],
-#      [0,0,1,0],
-#      [0,0,0,1]]
-# )
-# Ty = np.array(
-#     [[0,0,-1],
-#      [0,1,0],
-#      [1,0,0]]
-# )
-
-T = np.array(
-    [[0,0,1],
-     [1,0,0],
-     [0,1,0]]
+kk = np.dot(Ty,C)
+Tnb = np.array(
+    [[0,0,1,0],
+     [1,0,0,0],
+     [0,1,0,0],
+     [0,0,0,1]]
 )
 # [0,0,1;
 # 1,0,0;
 # 0,1,0]
+print(kk)
+cam_T_bottle = np.array(
+    [[-0.896667, -0.114581 , 0.427621, 0.037548],
+    [-0.439035 , 0.106018, -0.892193, -0.171583],
+    [ 0.056892 ,-0.987741 ,-0.145368, 0.745482],
+    [0.000000, 0.000000, 0.000000, 1.000000]]
 
-corrected_matrix = modify_rotation_in_transformation_matrix(cam_T_bottle, T)
-# cam_T_bottle = np.array(
-#     [[-0.896667, -0.114581 , 0.427621, 0.037548],
-#     [-0.439035 , 0.106018, -0.892193, -0.171583],
-#     [ 0.056892 ,-0.987741 ,-0.145368, 0.745482],
-#     [0.000000, 0.000000, 0.000000, 1.000000]]
-
-#     )
+    )
 
 
 # cam_T_bottle = np.dot(Tnb, cam_T_bottle)
@@ -97,7 +76,7 @@ Y = np.array(
     [ 0.07816186, -0.62827339, -0.77405637,  0.66619011],
     [ 0.    ,      0.     ,     0.     ,     1.        ]]    
 )
-base_T_tag = np.dot(Y, corrected_matrix)
+base_T_tag = np.dot(Y, cam_T_bottle)
 
 # base_T_tag = np.array(
 #     [[0.06245558, 0.99176524 , -0.11180769, -0.37611806],
@@ -151,7 +130,7 @@ try:
     print("欧拉角:", euler_angles)
 
     # Move relative to the current pose
-    # rob.movel((ur5_order), acc=a, vel=v, relative=False)
+    rob.movel((ur5_order), acc=a, vel=v, relative=False)
     # txt_file = '/home/tong/robotic-ai/octo/examples/action_groundturth.txt'
     # with open(txt_file, 'r') as f:
     #     # 逐行读取数据
